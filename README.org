@@ -1,0 +1,2 @@
+* I use Org-Mode
+With magit in emacs
