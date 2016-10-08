@@ -128,3 +128,990 @@
 #+END_SRC
 * visual_and_system
 
+
+#+BEGIN_SRC elisp
+;;; emacs system settings
+(auto-fill-mode 1)
+(add-hook 'org-mode-hook 'turn-on-auto-fill)
+
+
+
+;;; Recentf settings
+(recentf-mode 1)
+
+;;; Overidden by values in custom.el??
+(setq recentf-max-menu-items 80)
+(setq recentf-max-saved-items 100)
+
+
+;; cursor, mode, and general behavior
+(global-hl-line-mode 1)
+(setq-default cursor-type 'bar)
+(setq visible-bell t)
+(setq confirm-nonexistent-file-or-buffer nil)
+(fset 'yes-or-no-p 'y-or-n-p)
+
+(setq create-lockfiles nil)
+
+;; normally echoing not working--why is this required now
+(setq echo-keystrokes .5)
+;(global-visual-line-mode 1)
+
+
+;;; dired settings
+
+;; -h option human-readable
+;; -k option kilobytes?
+;; C-u s
+(setq dired-listing-switches "-Alhk")
+
+;; (require 'dired-details)
+;; (require 'dired-details+)
+(setq dired-details-hidden-string "")
+
+(require 'dired-x) 
+(setq dired-omit-files 
+      (rx (or (seq bol (? ".") "#")         ;; emacs autosave files 
+              (seq "~" eol)                 ;; backup-files 
+              (seq bol "CVS" eol)           ;; CVS dirs 
+              (seq ".pyc" eol)
+              (seq bol ".DS_Store" eol)
+              )))
+
+(setq dired-omit-extensions 
+      (append dired-latex-unclean-extensions 
+              dired-bibtex-unclean-extensions 
+              dired-texinfo-unclean-extensions)) 
+(add-hook 'dired-mode-hook (lambda () (dired-omit-mode 1)))
+
+;(put 'dired-find-alternate-file 'disabled nil)
+
+;;(setq-default dired-omit-files-p t) ; this is buffer-local variable
+
+
+;; (setq dired-omit-files
+;;       (concat dired-omit-files "\\|^\\..+$\\|\\.pdf$\\|\\.tex$"))
+
+(defun xah-toggle-read-novel-mode ()
+  "Setup current window to be suitable for reading long novel/article text.
+
+• Line wrap at word boundaries. 
+• Set a right margin.
+• line spacing is increased.
+• variable width font is used.
+
+Call again to toggle back."
+  (interactive)
+  (if (null (get this-command 'state-on-p))
+      (progn
+        (set-window-margins nil 0 
+                            (if (> fill-column (window-body-width))
+                                0
+                              (progn
+                                (- (window-body-width) fill-column))))
+        (variable-pitch-mode 1)
+        (setq line-spacing 0.4)
+        (setq word-wrap t)
+        (put this-command 'state-on-p t))
+    (progn
+      (set-window-margins nil 0 0)
+      (variable-pitch-mode 0)
+      (setq line-spacing nil)
+      (setq word-wrap nil)
+      (put this-command 'state-on-p nil)))
+  (redraw-frame (selected-frame)))
+
+;; other visual customizations
+(if (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
+(if (fboundp 'tool-bar-mode) (tool-bar-mode -1))
+;; eh?
+;; (if (fboundp 'menu-bar-mode) (menu-bar-mode -1))
+
+;; registers
+(setq register-separator ?+)
+(set-register register-separator "\n\n")
+
+;; window and buffer behavior
+;; (global-set-key (kbd "s-<return>") 'toggle-frame-fullscreen)
+;; vs. C-<f11>
+
+(setq processing-location "/usr/bin/processing-java")
+(setq processing-application-dir "/Applications/Processing.app")
+(setq processing-sketchbook-dir "~/Documents/Processing")
+
+;;(define-key org-babel-map (kbd "C-k") 'org-babel-processing-view-sketch)
+(global-set-key (kbd "C-c C-v C-m") 'org-babel-processing-view-sketch)
+
+;;; add net-logo highlighting
+;;(load-file "~/.emacs.d/plugin/netlogo-mode.el")
+
+;;; org-appearances
+;; let this load for org-src formatting, or, if you want
+;; whole hog, M-x color-theme-leuven
+
+;; zenburn can't be found when loading up my "vanilla" emacs
+(load-theme 'zenburn t)
+
+
+;; (defface org-block-begin-line
+;;   '((t (:underline "#A7A6AA" :foreground "#008ED1" :background "#EAEAFF")))
+;;   "Face used for the line delimiting the begin of source blocks.")
+
+;; (defface org-block-background
+;;   '((t (:background "#FFFFEA")))
+;;   "Face used for the source block background.")
+
+;; (defface org-block-end-line
+;;   '((t (:overline "#A7A6AA" :foreground "#008ED1" :background "#EAEAFF")))
+;;   "Face used for the line delimiting the end of source blocks.")
+
+;; ;; fontify the whole line for headings (with a background color)
+;; (setq org-fontify-whole-heading-line t)
+
+;;(set-face-attribute 'org-level-1 nil :height 120)
+
+;; (require 'color-theme)
+;; (setq color-theme-is-global t)
+
+;; (color-theme-initialize)
+;; (load "color-theme-leuven")
+;; (setq my-color-themes (list 'color-theme-leuven))
+
+(defun xsteve-ido-choose-from-recentf ()
+     "Use ido to select a recently opened file from the `recentf-list'"
+     (interactive)
+     (let ((home (expand-file-name (getenv "HOME"))))
+       (find-file
+        (ido-completing-read "Recentf open: "
+                             (mapcar (lambda (path)
+                                       (replace-regexp-in-string home "~" path))
+                                     recentf-list)
+                             nil t))))
+
+(global-set-key [(meta f11)] 'xsteve-ido-choose-from-recentf)
+#+END_SRC
+* load-core-extensions (scratch, simple-python)
+
+#+BEGIN_SRC elisp
+(setq load-prefer-newer t)
+
+(require 'org-install)
+(require 'org-habit)
+
+(setq ispell-program-name "aspell")
+(require 'recentf)
+
+;;; ido-mode and ido-vertical
+(require 'ido)
+(ido-mode t)
+(setq ido-enable-flex-matching t)
+(setq ido-everywhere t)
+(setq ido-create-new-buffer 'always)
+(setq ido-file-extensions-order '(".org" ".txt" ".py" ".html" ".lisp" ".el"
+				  ".emacs" ".ini" ".cfg" ".cnf"))
+(setq ido-save-directory-list-file "~/.ido.last")
+
+;; ido imported from
+;; http://sachachua.com/blog/2014/03/emacs-basics-call-commands-name-m-x-tips-better-completion-using-ido-helm/
+
+(require 'ido-vertical-mode)
+
+(if (commandp 'ido-vertical-mode) 
+    (progn
+      (ido-vertical-mode 1)
+      (setq ido-vertical-define-keys 'C-n-C-p-up-down-left-right)))
+
+;;(require)
+ 
+
+ ;; for more info--https://github.com/nonsequitur/smex
+(if (commandp 'smex)
+    (global-set-key (kbd "M-x") 'smex))
+
+(if (commandp 'flx-ido-mode)
+    (flx-ido-mode 1))
+
+(global-set-key (kbd "M-X") 'smex-major-mode-commands)
+
+;;; paredit-mode
+(autoload 'enable-paredit-mode "paredit" "Turn on pseudo-structural editing of Lisp code." t)
+(add-hook 'emacs-lisp-mode-hook       #'enable-paredit-mode)
+(add-hook 'eval-expression-minibuffer-setup-hook #'enable-paredit-mode)
+(add-hook 'ielm-mode-hook             #'enable-paredit-mode)
+(add-hook 'lisp-mode-hook             #'enable-paredit-mode)
+(add-hook 'lisp-interaction-mode-hook #'enable-paredit-mode)
+(add-hook 'scheme-mode-hook           #'enable-paredit-mode)
+
+
+;;; lilypond
+(autoload 'LilyPond-mode "lilypond-mode")
+(setq auto-mode-alist
+      (cons '("\\.ly$" . LilyPond-mode) auto-mode-alist))
+(add-hook 'LilyPond-mode-hook (lambda () (turn-on-font-lock)))
+
+(add-to-list 'load-path "~/.emacs.d/lisp/el")
+;; ;;   ~/Dropbox/dotemacsd/lisp/el:
+
+(require 'sclang)
+(setq exec-path (append exec-path
+			'(
+			  "/Applications/SuperCollider"
+			  "/Applications/SuperCollider/SuperCollider.app/Contents/Resources"
+			  ;; "/Applications/SuperCollider.app/Contents/MacOS/sclang"
+			  )))
+(add-hook 'sclang-mode-hook 'sclang-extensions-mode)
+(defvar persistent-scratch-filename 
+  "~/Dropbox/emacs/twentyonefivepy/.emacs-persistent-scratch"
+    "Location of *scratch* file contents for persistent-scratch.")
+
+(defvar persistent-scratch-backup-directory
+  "~/Dropbox/emacs/twentyonefivepy/.emacs-persistent-scratch-backups"
+    "Location of backups of the *scratch* buffer contents for
+    persistent-scratch.")
+
+(defun make-persistent-scratch-backup-name ()
+  "Create a filename to backup the current scratch file by
+  concatenating PERSISTENT-SCRATCH-BACKUP-DIRECTORY with the
+  current date and time."
+  (concat 
+   persistent-scratch-backup-directory
+   (format-time-string "%y-%m-%d_%H-%M-%S_%s" (current-time))))
+
+(defun save-persistent-scratch ()
+  "Write the contents of *scratch* to the file name
+  PERSISTENT-SCRATCH-FILENAME, making a backup copy in
+  PERSISTENT-SCRATCH-BACKUP-DIRECTORY."
+  (with-current-buffer (get-buffer "*scratch*")
+    (if (file-exists-p persistent-scratch-filename)
+        (copy-file persistent-scratch-filename
+                   (make-persistent-scratch-backup-name)))
+    (write-region (point-min) (point-max) 
+                  persistent-scratch-filename)))
+
+(defun load-persistent-scratch ()
+  "Load the contents of PERSISTENT-SCRATCH-FILENAME into the
+  scratch buffer, clearing its contents first."
+  (if (file-exists-p persistent-scratch-filename)
+      (with-current-buffer (get-buffer "*scratch*")
+        (delete-region (point-min) (point-max))
+        (insert-file-contents persistent-scratch-filename))))
+
+(load-persistent-scratch)
+
+(push #'save-persistent-scratch kill-emacs-hook)
+
+(require 'ob-ipython)
+
+;; (setq python-shell-interpreter "/usr/local/bin/python")
+
+(elpy-enable)
+
+(elpy-use-ipython)
+
+(setq
+ python-shell-interpreter "ipython"
+ ;; python-shell-interpreter-args (if (system-is-mac)
+ ;; 				   "--matplotlib=osx --colors=Linux"
+ ;;                                   (if (system-is-linux)
+ ;; 				       "--gui=wx --matplotlib=wx --colors=Linux"))
+ python-shell-prompt-regexp "In \\[[0-9]+\\]: "
+ python-shell-prompt-output-regexp "Out\\[[0-9]+\\]: "
+ python-shell-completion-setup-code
+   "from IPython.core.completerlib import module_completion"
+ python-shell-completion-module-string-code
+   "';'.join(module_completion('''%s'''))\n"
+ python-shell-completion-string-code
+   "';'.join(get_ipython().Completer.all_completions('''%s'''))\n")
+
+;; (setq python-shell-interpreter "ipython"
+;;       python-shell-interpreter-args "--pylab=osx --pdb --nosep --classic"
+;;       python-shell-prompt-regexp ">>> "
+;;       python-shell-prompt-output-regexp ""
+;;       python-shell-completion-setup-code "from IPython.core.completerlib import module_completion"
+;;       python-shell-completion-module-string-code "';'.join(module_completion('''%s'''))\n"
+;;       python-shell-completion-string-code "';'.join(get_ipython().Completer.all_completions('''%s'''))\n"
+;;       )
+#+END_SRC
+
+* orgmode_customizations.el
+
+#+BEGIN_SRC elisp
+;; ;;; do this from load_packages?					    :ARCHIVE:
+;; ;; experiment with block agenda
+
+(load "~/Dropbox/emacs/twentyonefivepy/.emacs.d/core-init/norang.el")
+(load "~/Dropbox/emacs/twentyonefivepy/.emacs.d/core-init/norang-clocking.el")
+
+;; ;;; org-mode initializations
+;; ;; (require 'org)
+;; ;; (require 'org-install)
+;; ;; (require 'ob-core)
+;; (require 'ob-ipython)
+(require 'org-id)
+
+;; ;;(load "/Users/a/Dropbox/Moutain Lion backups/git-clones/org-repos/drill/org-drill/org-drill.el")
+;; ;; (require 'org-drill)
+;; ;; (setq org-drill-use-visible-cloze-face-p nil)
+
+;; ;;; for writing and publishing blogs from org-mode
+;; ;; note: problems with org-mode version required org2blog 3-11-15
+
+;; (require 'auth-source)
+
+;; (setq org2blog/wp-blog-alist
+;;       '(("cicerovsemacs"
+;;          :url "https://cicerovsemacs.wordpress.com/xmlrpc.php"
+;;          :username "cicerojones")))
+
+;; (let (credentials)
+;;   ;; only required if your auth file is not already in the list of auth-sources
+;;   (add-to-list 'auth-sources "~/.netrc")
+;;   (setq credentials (auth-source-user-and-password "cicerovsemacs"))
+;;   (setq org2blog/wp-blog-alist
+;;         `(("my-blog"
+;;            :url "https://cicerovsemacs.wordpress.com/xmlrpc.php"
+;;            :username ,(car credentials)
+;;            :password ,(cadr credentials)))))
+
+
+;; (setq org-export-backends '(ascii html icalendar latex md))
+
+;; (setq org-directory "~/org/org-directory")
+;; (setq org-mobile-directory "~/Dropbox/MobileOrg")
+;; ;; this is important but I don't fully understand how it works!
+
+;; ;;(setq org-mobile-inbox-for-pull (concat org-directory "/index.org"))
+;; ;; eh, what happened to "~/git/org-archives/index.org"?? Let's resume using
+;; ;; that, since I keep getting errors when syncing changes to org files
+;; ;; made on mobile
+
+;; ;; To keep errors out of the agenda, take index out of org-directory
+;; (setq org-mobile-inbox-for-pull "~/Dropbox/emacs/shared_resources/index.org" )
+
+;; ;; (setq org-mobile-inbox-for-pull "~/org/org-directory/git/index.org")
+
+;; ;; (setq org-mobile-inbox-for-pull "~/org/org-directory/git/org-archives/index.org") 
+
+;; ;; consider setting this to contain directories rather than files!
+;; ;; appears to need explicit evaluating if you are to deal with
+;; ;; directories properly
+
+(setq org-agenda-files '(
+;; 			 "~/Dropbox/emacs/twentyonefivepy/.emacs.d/core-init/agenda-files.org"
+;;			 "~/Dropbox/emacs/shared_resources/diary.org"
+;;			 "~/org/org-directory/project-management/digital-arts-learning-business/"
+;;			 "~/org/org-directory/project-management/get-things-done-system/"
+;;			 "~/org/org-directory/project-management/ongoing-mooc-and-professional-development/"
+;;			 "~/org/org-directory/project-management/tutoring-and-existing-work/"
+			 ))
+
+;; ;; what are the reasons for turning this on or off?
+;; ;; (setq org-agenda-include-diary t)
+;; (setq org-agenda-include-diary nil)
+;; (setq org-agenda-diary-file "~/Dropbox/emacs/shared_resources/diary.org")
+;; ;; (setq diary-file "~/Dropbox/emacs/shared_resources/diary.org")
+;; ;; (setq diary-file nil)
+
+ 
+;; ;; speed up agenda generation? 
+;; (setq org-agenda-use-tag-inheritance nil)
+;; (setq org-agenda-inhibit-startup nil)
+;; (setq org-agenda-sticky t)
+;; (setq org-agenda-sticky 'nil)
+;; ;; (run-with-idle-timer 5 nil (lambda () (org-agenda-list) (delete-window)))
+
+
+;; ;; habits tweaking
+;; (setq org-habit-preceding-days 7
+;;       org-habit-following-days 1
+;;       org-habit-graph-column 80
+;;       ;; want to see TODOs disappear
+;;       ;; org-habit-show-habits-only-for-today t
+;;       ;; want to see state of all TODOs
+;;       org-habit-show-all-today t
+;;       )
+;; ;; logging done states
+;; ;; (setq org-log-done 'note)
+;; ;; causes problems with the Habits graph?
+
+;; (setq org-log-done nil)
+
+;; ;;; org-refile and ido settings taken from norang
+;; ;; Targets include this file and any file contributing to the agenda - up to 5 levels deep
+;; ;; (setq org-refile-targets (quote (;(nil :maxlevel . 5)
+;; ;;                                  (org-agenda-files :maxlevel . 3))))
+
+;; ;; ;; Use full outline paths for refile targets - we file directly with IDO
+;; ;; (setq org-refile-use-outline-path t)
+
+;; ;; ;; Targets complete directly with IDO
+;; ;; (setq org-outline-path-complete-in-steps nil)
+
+;; ;; ;; Allow refile to create parent tasks with confirmation
+;; ;; (setq org-refile-allow-creating-parent-nodes (quote confirm))
+
+;; ;; allow jumping to nodes in a auto complete/ido interface, rather than auto-isearch
+;; (setq org-goto-interface 'outline-path-completion)
+;; (setq org-goto-max-level 6)
+
+
+;; ;;; Use IDO for both buffer and file completion and ido-everywhere to t
+(setq org-completion-use-ido t)
+(setq ido-everywhere t)
+(setq ido-max-directory-size 100000)
+(ido-mode (quote both))
+; Use the current window when visiting files and buffers with ido
+(setq ido-default-file-method 'selected-window)
+(setq ido-default-buffer-method 'selected-window)
+; Use the current window for indirect buffer display
+(setq org-indirect-buffer-display 'current-window)
+
+;; ;;; org-capture template tests
+;; ;; The following customization sets a default target file for notes
+;; ;;
+;; ;; change to a different file
+;; ;; (setq org-default-notes-file (concat org-directory "/notes.org"))
+
+;; ;; 11-23-15 Capture location needs to be updated in keeping with new directory structure
+;; (setq org-capture-templates
+;;       `(("t" "Todo" entry (file+headline "~/Dropbox/emacs/shared_resources/refile.org"  "Tasks")
+;; 	 "* TODO %?\n  %i\n  %a")
+;; 	("n" "note" entry (file "~/Dropbox/emacs/shared_resources/refile.org" )
+;; 	 "* %? :NOTE:\n%U\n%a\n" :clock-in t :clock-resume t)
+;; 	("j" "Journal" entry (file+datetree "~/Dropbox/emacs/shared_resources/diary.org" )
+;;                "* %?\n%U\n" :clock-in t :clock-resume t)
+;; 	;; ("d" "capture to drill-template"
+;; 	;;  entry
+;; 	;;  (file+headline
+;; 	;;   "~/Documents/working-directory/drill-template-test.org"
+;; 	;;   "captured drill-items")
+;; 	;;  "* %? :drill:\n %i\n\n %l\n %U"
+;; 	;;  )
+;; 	;; ("w" "Capture web snippet" entry
+;;         ;;  (file+headline
+;; 	;;   "~/Documents/working-directory/drill-template-test.org"
+;; 	;;   "drill-items")
+;;         ;;  ,(concat
+;; 	;;    "* Fact: '%:description'        :"
+;; 	;;    (format "%s" org-drill-question-tag)
+;; 	;;    ":\n:PROPERTIES:\n:DATE_ADDED: %u\n:SOURCE_URL: %c\n:END:\n\n%i\n%?\n")
+;;         ;;  :empty-lines 1
+;;         ;;  :immediate-finish t)
+	
+;; 	;; ("u" "Task: Read this URL" entry
+;; 	;;  (file+headline "~/Dropbox/emacs/shared_resources/refile.org"  "Articles To Read")
+;; 	;;  ,(concat "* TODO Read article: '%:description'\nURL: %c\n\n")
+;; 	;;  :empty-lines 1
+;; 	;;  :immediate-finish t)
+;; 	))
+
+
+;; ;; org customization stuff
+;; (add-to-list 'auto-mode-alist '("\\.org\\'" . org-mode))
+(global-set-key "\C-cc" 'org-capture)
+(global-set-key "\C-ca" 'org-agenda)
+;;(global-set-key "\C-cb" 'org-iswitchb)
+(global-set-key "\C-cl" 'org-store-link)
+
+(setq org-use-speed-commands
+      (lambda () (and (looking-at org-outline-regexp) (looking-back "^\**"))))
+
+;; (require 'cider)
+;; ;; Useful keybindings when using Clojure from Org
+;; (org-defkey org-mode-map "\C-x\C-e" 'cider-eval-last-sexp)
+
+;; ;; A HA! you steal the "deadline" keybinding in org-mode
+;; ;; (org-defkey org-mode-map "\C-c\C-d" 'cider-doc)
+;; (org-defkey org-mode-map "\C-c\C-d" 'org-deadline)
+
+
+;;; babel
+(org-babel-do-load-languages
+      'org-babel-load-languages
+      '((scheme . t)
+        (python . t)
+	;;	(php . t)
+	(lilypond . t)
+	;; (processing . t)
+	(dot . t)
+	(lisp . t)
+	(emacs-lisp . t)
+	(clojure . t)
+	(java . t)
+	(ruby . t)
+	(sql . t)
+	(latex . t)
+;;	(sclang . t)
+	;; (R . t)
+	(C . t)
+	;; (shell . t)
+	)
+      )
+
+;; ;; do this in customize
+;; ;; (setq org-src-fontify-natively t)
+
+;; ;; stop stealing my backtick in org-mode!
+;; ;; but I do want to speed up insertion of environments and templates
+
+;; ;; (add-hook 'org-mode-hook 'turn-on-org-cdlatex)
+
+;; (require 'ob-clojure)
+;; ;; (eval-after-load "ob-clojure"
+;; ;;   '(defun org-babel-execute:clojure (body params)
+;; ;;      "Execute a block of Clojure code with Babel and nREPL."
+;; ;;      (require 'nrepl)
+;; ;;      (if (nrepl-current-connection-buffer)
+;; ;;          (let ((result (nrepl-eval (org-babel-expand-body:clojure body params))))
+;; ;;            (car (read-from-string (plist-get result :value))))
+;; ;;        (error "nREPL not connected!"))))
+
+
+;; ;;;; org extensions?
+;; ;;; cider customizations
+;; (require 'cider)
+;; (setq org-babel-clojure-backend 'cider)
+;; (setq nrepl-hide-special-buffers t
+;;       cider-repl-pop-to-buffer-on-connect nil
+;;       cider-popup-stacktraces nil
+;;       cider-repl-popup-stacktraces t)
+
+;; ;; cider repl history
+;; (setq cider-repl-wrap-history t)
+;; (setq cider-repl-history-size 1000) ; the default is 500
+;; (setq cider-repl-history-file "~/.cider-history")
+
+
+;; ;;; finally set agenda 
+
+;; ;; how does this work? see init.el first
+;; ;; (add-hook 'after-init-hook '(lambda () (org-agenda-list 1)))
+
+;; (require 'beeminder)
+;; (setq beeminder-username "cicerotheelder")
+;; (setq beeminder-auth-token "LaXVzEPVpVKxUYJxsPUt")
+
+;; ;; (global-unset-key (kbd "C-c C-b"))
+
+;; (global-set-key "\C-c\C-ba" 'beeminder-add-data)
+;; (global-set-key "\C-c\C-bw" 'beeminder-whoami)
+;; (global-set-key "\C-c\C-bg" 'beeminder-my-goals-org)
+;; (global-set-key "\C-c\C-br" 'beeminder-refresh-goal)
+;; (global-set-key "\C-c\C-bt" 'beeminder-submit-clocked-time)
+
+
+;; ;; (add-to-list 'load-path "~/path/to/org-present")
+
+;; (autoload 'org-present "org-present" nil t)
+
+;; (eval-after-load "org-present"
+;;   '(progn
+;;      (add-hook 'org-present-mode-hook
+;;                (lambda ()
+;;                  (org-present-big)
+;;                  (org-display-inline-images)
+;;                  (org-present-hide-cursor)
+;;                  (org-present-read-only)))
+;;      (add-hook 'org-present-mode-quit-hook
+;;                (lambda ()
+;;                  (org-present-small)
+;;                  (org-remove-inline-images)
+;;                  (org-present-show-cursor)
+;;                  (org-present-read-write)))))
+
+;; ;; my function for turning on and off showing of ALL habits,
+;; ;; regardless of completion state
+
+;; ;;; start writing supercollider "macros"
+
+;; ;; how does supercollider have to be set up for this to work?
+;; ;; i.e. must have the "server booted"
+
+;; (defun execute-sc-tone ()
+;;   "To be called withing SCLang:Workspace, with server booted"
+;;   (interactive)
+;;   (progn (insert "{ SinOsc.ar([440, 442], 1, 0.5) }.play\;")
+;; 	 (sclang-eval-last-expression)))
+
+;; (setq initial-major-mode 'org-mode)
+
+
+;; (defun org-habit-toggle-show-all-today ()
+;;   "Make showing habits happen differently"
+;;   (interactive)
+;;   (setq org-habit-show-all-today (not org-habit-show-all-today))
+;; ;;  (org-agenda)
+;;   ;;(self-insert-command "m")
+;;   )
+
+(defun insert-morning (none)
+  (interactive "p")
+  (progn 
+    (org-meta-return)
+    (org-shiftmetaleft)
+    (org-time-stamp-inactive)
+    (org-meta-return)
+    (org-cycle)
+    (org-time-stamp-inactive t)))
+#+END_SRC
+
+* org-basic-agenda
+#+BEGIN_SRC elisp
+;; (setq org-agenda-files '(
+;; 			 "/Users/a/org/org-directory/notes-and-tips/tips.org"
+;; 			 ;; "~/org/org-directory/tips.org"
+;; 			 ;; some good reason to not keep this as an agenda file?
+;; 			 "~/Dropbox/emacs/shared_resources/diary.org"
+;; 			 "/Users/a/org/org-directory/project-management/projects.org"
+;; 			 ;; "~/org/org-directory/projects.org"
+;; 			 ;; "~/org/org-directory/journal.org"
+;; 			 "/Users/a/org/org-directory/journal-and-writing/codejournal.org"
+;; 			 ;; "~/org/org-directory/codejournal.org"
+
+;; 			 ))
+
+;; (setq org-agenda-files '(
+;; ;;			 "~/org/org-directory/git/org-archives/"
+;; ;;			 "~/git/org-archives/org-drills"
+;; 			 "~/org/org-directory/notes.org"
+;; 			 "~/org/org-directory/tips.org"
+;; 			 "~/org/org-directory/journal.org"
+;; ;;			 "~/org/org-directory/habits"
+;; ;;			 "~/org/org-directory/habits.org"
+;; ;;			 "~/org/org-directory/git/org-archives/diary.org"
+;; ;;			 "~/org/org-directory/documentation.org"
+;; 			 "~/org/org-directory/projects.org"
+;; 			 ))
+
+;;;
+(setq org-agenda-files '("~/Bitbucket-repos/simple-org2016/project-notes/12-fold-way/"
+			 ;; "~/Dropbox/Moutain Lion backups/Documents/working-directory/udacity-courses/fullstack/project2/exceeds-specifications-materials/steps.org"
+			 ;; "~/Bitbucket-repos/simple-org2016/personal-notes/codejournal.org"
+			 ;; "~/Bitbucket-repos/simple-org2016/project-notes/projects.org"
+			 ))
+
+;; speed up agenda generation? 
+(setq org-agenda-use-tag-inheritance nil)
+(setq org-agenda-inhibit-startup nil)
+(setq org-agenda-sticky t)
+(setq org-agenda-sticky 'nil)
+(run-with-idle-timer 5 nil (lambda () (org-agenda-list) (delete-window)))
+
+
+;; habits tweaking
+(setq org-habit-preceding-days 7
+      org-habit-following-days 1
+      org-habit-graph-column 80
+      ;; want to see TODOs disappear
+      ;; org-habit-show-habits-only-for-today t
+      ;; want to see state of all TODOs
+      org-habit-show-all-today t
+      )
+;; logging done states
+;; (setq org-log-done 'note)
+;; causes problems with the Habits graph?
+
+(setq org-log-done nil)
+;;; org-refile and ido settings taken from norang
+;; Targets include this file and any file contributing to the agenda - up to 5 levels deep
+(setq org-refile-targets (quote (;(nil :maxlevel . 5)
+                                 (org-agenda-files :maxlevel . 5))))
+
+;; Use full outline paths for refile targets - we file directly with IDO
+(setq org-refile-use-outline-path t)
+
+;; Targets complete directly with IDO
+(setq org-outline-path-complete-in-steps nil)
+
+;; Allow refile to create parent tasks with confirmation
+(setq org-refile-allow-creating-parent-nodes (quote confirm))
+
+;; Use IDO for both buffer and file completion and ido-everywhere to t
+(setq org-completion-use-ido t)
+(setq ido-everywhere t)
+(setq ido-max-directory-size 100000)
+(ido-mode (quote both))
+; Use the current window when visiting files and buffers with ido
+(setq ido-default-file-method 'selected-window)
+(setq ido-default-buffer-method 'selected-window)
+; Use the current window for indirect buffer display
+(setq org-indirect-buffer-display 'current-window)
+
+;;; org-capture template tests
+;; The following customization sets a default target file for notes
+(setq org-default-notes-file (concat org-directory "/notes.org"))
+
+
+
+(setq org-directory "~/org/org-directory")
+(setq org-mobile-directory "~/Dropbox/MobileOrg")
+;; this is important but I don't fully understand how it works!
+
+;;(setq org-mobile-inbox-for-pull (concat org-directory "/index.org"))
+;; eh, what happened to "~/git/org-archives/index.org"?? Let's resume using
+;; that, since I keep getting errors when syncing changes to org files
+;; made on mobile
+;; To keep errors out of the agenda, take index out of org-directory
+
+(setq org-mobile-inbox-for-pull "~/org/org-directory/git/index.org")
+
+;; "/Users/b/Bitbucket-repos/simple-org2016/project-notes/"
+
+
+
+(setq org-capture-templates
+      '(("t" "Todo" entry (file+headline "/Users/b/Bitbucket-repos/simple-org2016/project-notes/capture-any-todos.org" "Tasks")
+	 "* TODO %?\n  %i\n  %a")
+	("n" "note" entry (file "/Users/b/Bitbucket-repos/simple-org2016/project-notes/capture-any-todos.org")
+	 "* %? :NOTE:\n%U\n%a\n" :clock-in t :clock-resume t)
+	("j" "Journal" entry (file+datetree "~/org/org-directory/git/org-archives/diary.org")
+               "* %?\n%U\n" :clock-in t :clock-resume t)
+	))
+
+;; (setq org-capture-templates
+;;       '(("t" "Todo" entry (file+headline "~/org/org-directory/git/org-archives/refile.org" "Tasks")
+;; 	 "* TODO %?\n  %i\n  %a")
+;; 	("n" "note" entry (file "~/org/org-directory/git/org-archives/refile.org")
+;; 	 "* %? :NOTE:\n%U\n%a\n" :clock-in t :clock-resume t)
+;; 	;; ("d" "capture to drill-template"
+;; 	;;  entry
+;; 	;;  (file+headline
+;; 	;;   "~/Documents/working-directory/drill-template-test.org"
+;; 	;;   "captured drill-items")
+;; 	;;  "* %? :drill:\n %i\n\n %l\n %U"
+;; 	;;  )
+;; 	;; ("w" "Capture web snippet" entry
+;;         ;;  (file+headline
+;; 	;;   "~/Documents/working-directory/drill-template-test.org"
+;; 	;;   "drill-items")
+;;         ;;  ,(concat
+;; 	;;    "* Fact: '%:description'        :"
+;; 	;;    (format "%s" org-drill-question-tag)
+;; 	;;    ":\n:PROPERTIES:\n:DATE_ADDED: %u\n:SOURCE_URL: %c\n:END:\n\n%i\n%?\n")
+;;         ;;  :empty-lines 1
+;;         ;;  :immediate-finish t)
+;; 	("j" "Journal" entry (file+datetree "~/org/org-directory/git/org-archives/diary.org")
+;;                "* %?\n%U\n" :clock-in t :clock-resume t)
+;; 	("u" "Task: Read this URL" entry
+;; 	 (file+headline "~/org/org-directory/git/org-archives/refile.org" "Articles To Read")
+;; 	 ,(concat "* TODO Read article: '%:description'\nURL: %c\n\n")
+;; 	 :empty-lines 1
+;; 	 :immediate-finish t)))
+#+END_SRC
+
+* org-basic-init.el
+#+BEGIN_SRC elisp
+;; org customization stuff
+(add-to-list 'auto-mode-alist '("\\.org\\'" . org-mode))
+(global-set-key "\C-cc" 'org-capture)
+(global-set-key "\C-ca" 'org-agenda)
+(global-set-key "\C-cb" 'org-iswitchb)
+(global-set-key "\C-cl" 'org-store-link)
+
+(setq org-use-speed-commands t)
+
+(setq org-use-speed-commands
+      (lambda () (and (looking-at org-outline-regexp) (looking-back "^\**"))))
+
+(setq org-catch-invisible-edits 'show-and-error)
+#+END_SRC
+* org-basic-babel
+#+BEGIN_SRC elisp
+;;; cider customizations
+(require 'ob-clojure)
+(require 'cider)
+(setq org-babel-clojure-backend 'cider)
+
+;;; babel
+(org-babel-do-load-languages
+      'org-babel-load-languages
+      '((scheme . t)
+        (python . t)
+	(dot . t)
+	(lisp . t)
+	(emacs-lisp . t)
+	(clojure . t)
+	(java . t)
+	(ruby . t)
+	(sql . t)
+	;; (R . t)
+	(C . t)))
+
+;; do this in customize
+(setq org-src-fontify-natively t)
+
+(setq org-confirm-babel-evaluate nil)
+
+;; stop stealing my backtick in org-mode!
+;; but I do want to speed up insertion of environments and templates
+
+;;(add-hook 'org-mode-hook 'turn-on-org-cdlatex)
+
+(add-to-list 'org-babel-tangle-lang-exts '("clojure" . "clj"))
+
+;; (setq nrepl-hide-special-buffers t
+;;       cider-repl-pop-to-buffer-on-connect nil
+;;       cider-popup-stacktraces nil
+;;       cider-repl-popup-stacktraces t)
+
+;; ;; cider repl history
+;; (setq cider-repl-wrap-history t)
+;; (setq cider-repl-history-size 1000) ; the default is 500
+;; (setq cider-repl-history-file "~/.cider-history") 
+
+;;;; using Common Lisp
+
+;; setup load-path and autoloads
+
+;; ;; slime set-up instructions that are taken from CCL and Quicklisp method
+;; (load (expand-file-name "~/quicklisp/slime-helper.el"))
+
+(setq inferior-lisp-program "/ccl/dx86cl64")
+
+;; taken from github/slime setup instructions
+(require 'slime-autoloads)
+(setq slime-contribs '(slime-fancy))
+;;Set your lisp system and, optionally, some contribs
+
+;; (load "/Users/a/Dropbox/Moutain Lion backups/git-clones/org-repos/slime-repl-ansi-color/slime-repl-ansi-color.el")
+;; (slime-setup '(slime-fancy slime-repl-ansi-color))
+;; note, where is clisp? see below
+
+
+;;(setq geiser-repl-startup-time 20000)
+
+;; By default, the command M-x slime starts the program specified with
+;; inferior-lisp- program. If you invoke M-x slime with a prefix
+;; argument, Emacs prompts for the program which should be started
+;; instead. If you need that frequently or if the command involves
+;; long filenames it’s more convenient to set the
+;; slime-lisp-implementations variable in your ‘.emacs’. This variable
+;; holds a list of programs and if you invoke SLIME with a negative
+;; prefix argument, M-- M-x slime, you can select a program from that
+;; list. When called without a prefix, either the name specified in
+;; slime-default-lisp, or the first item of the list will be used.
+
+(setq slime-lisp-implementations
+      '((ccl ("/usr/local/bin/ccl"))
+	(clisp ("/usr/local/bin/clisp") :coding-system utf-8-unix)
+	(cmucl ("/usr/local/Cellar/cmucl/20f/bin/lisp"))
+	(sbcl ("/usr/local/bin/sbcl"))))
+      
+           ;; '((ccl ("/ccl/dx86cl64"))
+           ;;   (clisp ("/usr/local/Cellar/clisp/2.49/bin/clisp") :coding-system utf-8-unix)
+	   ;;   (cmucl ("~/Documents/starting-directory/projects/T3L-programming/formal-programming language related/cmucl-20d-x86-darwin/bin/lisp"))
+	   ;;   (sbcl ("/usr/local/Cellar/sbcl/1.2.2/bin/sbcl"))))
+
+
+
+;; ;; Stop SLIME's REPL from grabbing DEL,
+;;           ;; which is annoying when backspacing over a '('
+;;           (defun override-slime-repl-bindings-with-paredit ()
+;;             (define-key slime-repl-mode-map
+;;                 (read-kbd-macro paredit-backward-delete-key) nil))
+;;           (add-hook 'slime-repl-mode-hook 'override-slime-repl-bindings-with-paredit)
+#+END_SRC
+* org-extensions
+#+BEGIN_SRC elisp
+(load "~/Dropbox/emacs/twentyonefivepy/.emacs.d/core-init/norang.el")
+(load "~/Dropbox/emacs/twentyonefivepy/.emacs.d/core-init/norang-clocking.el")
+
+(require 'ob-core)
+
+;; for writing and publishing blogs from org-mode
+
+;; note: problems with org-mode version required org2blog 3-11-15
+
+(require 'auth-source)
+
+;; (setq org2blog/wp-blog-alist
+;;       '(("cicerovsemacs"
+;;          :url "http://cicerovsemacs.wordpress.com/xmlrpc.php"
+;;          :username "cicerojones")))
+
+(let (credentials)
+  ;; only required if your auth file is not already in the list of auth-sources
+  (add-to-list 'auth-sources "~/.netrc")
+  (setq credentials (auth-source-user-and-password "cicerovsemacs"))
+  (setq org2blog/wp-blog-alist
+        `(("my-blog"
+           :url "http://cicerovsemacs.wordpress.com/xmlrpc.php"
+           :username ,(car credentials)
+           :password ,(cadr credentials)))))
+
+
+(setq org-export-backends '(ascii html icalendar latex md))
+
+
+(autoload 'org-present "org-present" nil t)
+
+(eval-after-load "org-present"
+  '(progn
+     (add-hook 'org-present-mode-hook
+               (lambda ()
+                 (org-present-big)
+                 (org-display-inline-images)
+                 (org-present-hide-cursor)
+                 (org-present-read-only)))
+     (add-hook 'org-present-mode-quit-hook
+               (lambda ()
+                 (org-present-small)
+                 (org-remove-inline-images)
+                 (org-present-show-cursor)
+                 (org-present-read-write)))))
+
+;; my function for turning on and off showing of ALL habits,
+;; regardless of completion state
+;; start writing supercollider "macros" 
+
+(defun execute-sc-tone ()
+  "To be called withing SCLang:Workspace, with server booted"
+  (interactive)
+  (progn (insert "{ SinOsc.ar([440, 442], 1, 0.5) }.play\;")
+	 (sclang-eval-last-expression)))
+(setq initial-major-mode 'org-mode)
+
+(defun org-habit-toggle-show-all-today ()
+  (interactive)
+  (setq org-habit-show-all-today (not org-habit-show-all-today))
+  (org-agenda)
+  ;;(self-insert-command "m")
+  )
+
+(defun insert-morning (none)
+  (interactive "p")
+  (progn 
+    (org-meta-return)
+    (org-shiftmetaleft)
+    (org-time-stamp-inactive)
+    (org-meta-return)
+    (org-cycle)
+    (org-time-stamp-inactive t)))
+#+END_SRC
+* helm-extended-configuration
+#+BEGIN_SRC elisp
+
+(require 'helm)
+(require 'helm-config)
+
+;; The default "C-x c" is quite close to "C-x C-c", which quits Emacs.
+;; Changed to "C-c h". Note: We must set "C-c h" globally, because we
+;; cannot change `helm-command-prefix-key' once `helm-config' is loaded.
+(global-set-key (kbd "C-c h") 'helm-command-prefix)
+(global-unset-key (kbd "C-x c"))
+
+(define-key helm-map (kbd "<tab>") 'helm-execute-persistent-action) ; rebind tab to run persistent action
+(define-key helm-map (kbd "C-i") 'helm-execute-persistent-action) ; make TAB works in terminal
+(define-key helm-map (kbd "C-z")  'helm-select-action) ; list actions using C-z
+
+(when (executable-find "curl")
+  (setq helm-google-suggest-use-curl-p t))
+
+(setq helm-split-window-in-side-p           t ; open helm buffer inside current window, not occupy whole other window
+      helm-move-to-line-cycle-in-source     t ; move to end or beginning of source when reaching top or bottom of source.
+      helm-ff-search-library-in-sexp        t ; search for library in `require' and `declare-function' sexp.
+      helm-scroll-amount                    8 ; scroll 8 lines other window using M-<next>/M-<prior>
+      helm-ff-file-name-history-use-recentf t)
+
+(helm-mode 1)
+#+END_SRC

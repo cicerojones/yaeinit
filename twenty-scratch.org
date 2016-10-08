@@ -1,0 +1,130 @@
+* keybindings
+
+#+BEGIN_SRC elisp
+
+(global-set-key "\C-x\C-r" 'recentf-open-files)
+
+;; (global-unset-key (kbd "<f1>"))
+;; (global-unset-key (kbd "<help>"))
+(global-unset-key (kbd "<f10>"))
+(global-unset-key (kbd "M-."))		;haven't been using tags recentlyu
+(global-unset-key (kbd "M-h"))		;haven't been using tags recentlyu
+
+;; must load emacs-overtone-functions first
+;; (global-set-key (kbd "<f11>") 'overtone-execute-line)
+;; (global-set-key (kbd "<f12>") 'overtone-stop)
+
+(global-unset-key (kbd "<f11>"))
+(global-unset-key (kbd "<f13>"))
+(global-unset-key (kbd "C-z"))
+(global-unset-key (kbd "C-x m")) 	;Should I be writing email in emacs??
+
+(global-set-key (kbd "M-h") 'company-quickhelp-manual-begin)
+(global-set-key (kbd "C-x m") 'mark-paragraph)
+;; (global-set-key (kbd "<f1>") 'other-window)
+(global-set-key (kbd "C-<f11>") 'toggle-frame-fullscreen)
+
+
+
+;; set magit-status for easy gitting
+;;(global-set-key (kbd "C-x g") 'magit-status)
+
+;; (global-set-key (kbd "C-M-s") 'isearch-forward-regexp)
+
+(global-set-key (kbd "C-x C-b") 'ibuffer)
+(setq ibuffer-default-sorting-mode 'major-mode)
+
+(defun transpose-buffers (arg)
+  "Transpose the buffers shown in two windows."
+  (interactive "p")
+  (let ((selector (if (>= arg 0) 'next-window 'previous-window)))
+    (while (/= arg 0)
+      (let ((this-win (window-buffer))
+            (next-win (window-buffer (funcall selector))))
+        (set-window-buffer (selected-window) next-win)
+        (set-window-buffer (funcall selector) this-win)
+        (select-window (funcall selector)))
+      (setq arg (if (plusp arg) (1- arg) (1+ arg))))))
+
+(defun toggle-window-split ()
+  (interactive)
+  (if (= (count-windows) 2)
+      (let* ((this-win-buffer (window-buffer))
+	     (next-win-buffer (window-buffer (next-window)))
+	     (this-win-edges (window-edges (selected-window)))
+	     (next-win-edges (window-edges (next-window)))
+	     (this-win-2nd (not (and (<= (car this-win-edges)
+					 (car next-win-edges))
+				     (<= (cadr this-win-edges)
+					 (cadr next-win-edges)))))
+	     (splitter
+	      (if (= (car this-win-edges)
+		     (car (window-edges (next-window))))
+		  'split-window-horizontally
+		'split-window-vertically)))
+	(delete-other-windows)
+	(let ((first-win (selected-window)))
+	  (funcall splitter)
+	  (if this-win-2nd (other-window 1))
+	  (set-window-buffer (selected-window) this-win-buffer)
+	  (set-window-buffer (next-window) next-win-buffer)
+	  (select-window first-win)
+	  (if this-win-2nd (other-window 1))))))
+
+(global-set-key (kbd "C-c C-x 4 t") 'toggle-window-split)
+
+;;; Stefan Monnier <foo at acm.org>. It is the opposite of fill-paragraph    
+(defun unfill-paragraph ()
+  "Takes a multi-line paragraph and makes it into a single line of text."
+  (interactive)
+  (let ((fill-column (point-max)))
+    (fill-paragraph nil)))
+
+;; Handy key definition
+(define-key global-map "\M-Q" 'unfill-paragraph)
+
+(global-set-key (kbd "C-x 4 t") 'transpose-buffers)
+
+
+
+;; use smex--also set in ido-mode customizations in load-packages.ely
+;; https://github.com/nonsequitur/smex/
+
+;; (global-set-key (kbd "M-x") 'smex)
+(global-set-key (kbd "M-X") 'smex-major-mode-commands)
+;; This is your old M-x.
+(global-set-key (kbd "C-c C-c M-x") 'execute-extended-command)
+
+;;; Window behavior
+
+;; La bella vita di quattro finestre
+(global-set-key "\C-coj" 'windmove-left)
+
+;; not working??
+;;(global-set-key "\C-cor" 'windmove-right)
+
+(defun select-window-on-right ()
+  "Select window on the right."
+  (interactive)
+  (select-window (window-in-direction 'right)))
+
+(global-set-key "\C-col" 'select-window-on-right)
+(global-set-key "\C-coi" 'windmove-up)
+(global-set-key "\C-cok" 'windmove-down)
+
+;; compare
+;; Make windmove work in org-mode:
+(add-hook 'org-shiftup-final-hook 'windmove-up)
+(add-hook 'org-shiftleft-final-hook 'windmove-left)
+(add-hook 'org-shiftdown-final-hook 'windmove-down)
+(add-hook 'org-shiftright-final-hook 'windmove-right)
+
+;; what's "find other window" mean?
+(defun windmove-opposite () (interactive)
+       (if (windmove-find-other-window 'up) (windmove-up) (windmove-down))
+       (if (windmove-find-other-window 'right) (windmove-right)(windmove-left)))
+
+(global-set-key "\C-coo" 'windmove-opposite)
+#+END_SRC
+* visual_and_system
+
