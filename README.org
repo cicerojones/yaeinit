@@ -1,2 +1,4 @@
 * I use Org-Mode
 With magit in emacs
+* To magit-branch or not to magit-branch
+
